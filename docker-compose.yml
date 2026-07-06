@@ -51,7 +51,6 @@ services:
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       CREDENTIAL_ENCRYPTION_KEY: ${CREDENTIAL_ENCRYPTION_KEY}
-      SEED_GITHUB_TOKEN: ${SEED_GITHUB_TOKEN:-}
     depends_on:
       db:
         condition: service_healthy
