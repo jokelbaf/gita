@@ -41,7 +41,7 @@ pnpm install
 cp .env.example .env      # then fill in the values (see below)
 pnpm db:migrate           # apply migrations
 pnpm db:seed              # seed 3 users and 6 example widgets
-pnpm dev                  # http://localhost:5173
+pnpm dev                  # http://localhost:1791
 ```
 
 ### Environment
@@ -50,7 +50,7 @@ pnpm dev                  # http://localhost:5173
 | --------------------------------- | --------------------------------------------------------- |
 | `DATABASE_URL`                    | Postgres connection string                                |
 | `BETTER_AUTH_SECRET`              | Session secret (`openssl rand -base64 32`)                |
-| `BETTER_AUTH_URL`                 | App base URL (e.g. `http://localhost:5173`)               |
+| `BETTER_AUTH_URL`                 | App base URL (e.g. `http://localhost:1791`)               |
 | `GITHUB_CLIENT_ID` / `..._SECRET` | GitHub OAuth app credentials (login/identity only)        |
 | `CREDENTIAL_ENCRYPTION_KEY`       | 32-byte key encrypting user git tokens at rest (required) |
 | `REDIS_URL`                       | Dragonfly/Redis connection for the render cache           |
@@ -58,7 +58,7 @@ pnpm dev                  # http://localhost:5173
 | `PG_USER` / `PG_PASSWORD` / `PG_DB` | Postgres provisioning for Docker Compose (see below)    |
 
 For GitHub sign-in, create an OAuth app with callback URL
-`http://localhost:5173/api/auth/callback/github` and set the client id/secret.
+`http://localhost:1791/api/auth/callback/github` and set the client id/secret.
 
 See [`.env.example`](.env.example) for the full annotated list.
 
