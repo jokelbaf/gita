@@ -78,18 +78,10 @@ The production stack runs entirely via Docker Compose. It builds the app image,
 provisions Postgres and a Dragonfly cache, applies database migrations, and only
 then starts the web server.
 
-1. Set up environment variables. Compose reads them from a root `.env` file (see
-   [`.env.example`](.env.example)). The app secrets (`BETTER_AUTH_SECRET`,
-   `BETTER_AUTH_URL`, `GITHUB_CLIENT_ID`/`_SECRET`, `CREDENTIAL_ENCRYPTION_KEY`)
-   come from there, plus `PG_USER` / `PG_PASSWORD` / `PG_DB` to provision Postgres.
-   `DATABASE_URL` and `REDIS_URL` are overridden inside compose to point at the
-   `db` and `cache` services, so you don't need to set them for the container.
+1. Set the Compose environment variables in your deployment environment (or via --env-file docker compose arguments). The `.env.example` file lists all required variables.
 
 2. Build and start all services:
    ```bash
-   # Locally, reading variables from .env
-   docker compose --env-file .env up -d --build
-   # Or, if the variables are already set in your CI/host environment
    docker compose up -d --build
    ```
    On first start the `migrate` service runs `prisma migrate deploy` to initialise
