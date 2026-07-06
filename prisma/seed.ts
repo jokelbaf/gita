@@ -318,7 +318,7 @@ const WIDGETS: SeedWidget[] = [
 ];
 
 const USER_WIDGET_SOURCE = `function Widget({ accent, data }) {
-  const u = data.user;
+  const u = data.user.profile;
   const stats = [['followers', u.followers], ['following', u.following], ['repos', u.publicRepos]];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 20, width: '100%', background: '#0d1117', borderRadius: 12, color: '#e6edf3' }}>
@@ -340,12 +340,12 @@ const USER_WIDGET_SOURCE = `function Widget({ accent, data }) {
 
 const REPO_WIDGET_SOURCE = `function Widget({ accent, data }) {
   const r = data.repo;
-  const stats = [['stars', r.stars], ['forks', r.forks], ['watchers', r.watchers]];
+  const stats = [['stars', r.stats.stars], ['forks', r.stats.forks], ['watchers', r.stats.watchers]];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 20, width: '100%', background: '#0d1117', borderRadius: 12, color: '#e6edf3' }}>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontSize: 18, fontWeight: 700 }}>{r.fullName}</span>
-        {r.description ? <span style={{ fontSize: 13, color: '#8b949e' }}>{r.description}</span> : null}
+        <span style={{ fontSize: 18, fontWeight: 700 }}>{r.meta.fullName}</span>
+        {r.meta.description ? <span style={{ fontSize: 13, color: '#8b949e' }}>{r.meta.description}</span> : null}
       </div>
       <div style={{ display: 'flex', gap: 24 }}>
         {stats.map(([label, value]) => (

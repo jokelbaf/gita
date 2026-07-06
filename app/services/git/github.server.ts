@@ -1,9 +1,15 @@
 import { cacheKeys, withCache } from "../cache.server";
 import { GitError } from "./errors";
+import { languageColor } from "./language-colors.server";
 import type {
+  GitAccountType,
+  GitLanguage,
   GitProvider,
+  GitRelease,
   GitRepo,
+  GitRepoCommunity,
   GitRepoRef,
+  GitRepoVisibility,
   GitUser,
   TokenValidation,
 } from "./types";
@@ -13,8 +19,19 @@ const USER_TTL = 300;
 const REPO_TTL = 300;
 const LANGUAGES_TTL = 900;
 const RELEASE_TTL = 900;
+const COMMUNITY_TTL = 900;
 const REPO_LIST_TTL = 120;
 const REPO_LIST_PAGES = 3; // up to 300 most-recently-pushed repos
+
+type CommunityProfileData = Omit<GitRepoCommunity, "license">;
+
+const EMPTY_COMMUNITY: CommunityProfileData = {
+  healthPercent: 0,
+  hasReadme: false,
+  hasCodeOfConduct: false,
+  hasContributing: false,
+  hasSecurityPolicy: false,
+};
 
 interface GhUser {
   login: string;
@@ -23,9 +40,15 @@ interface GhUser {
   bio: string | null;
   company: string | null;
   location: string | null;
+  blog: string | null;
+  twitter_username: string | null;
+  type: string;
+  hireable: boolean | null;
   followers: number;
   following: number;
   public_repos: number;
+  public_gists: number;
+  html_url: string | null;
   created_at: string | null;
 }
 
@@ -34,6 +57,14 @@ interface GhRepo {
   owner: { login: string };
   full_name: string;
   description: string | null;
+  homepage: string | null;
+  visibility?: string;
+  private: boolean;
+  topics?: string[];
+  fork: boolean;
+  archived: boolean;
+  default_branch: string;
+  size: number;
   stargazers_count: number;
   forks_count: number;
   subscribers_count?: number;
@@ -41,6 +72,8 @@ interface GhRepo {
   open_issues_count: number;
   language: string | null;
   license: { spdx_id: string | null; name: string } | null;
+  created_at: string | null;
+  updated_at: string | null;
   pushed_at: string | null;
 }
 
@@ -48,6 +81,18 @@ interface GhRelease {
   tag_name: string;
   name: string | null;
   published_at: string | null;
+  prerelease: boolean;
+  html_url: string | null;
+}
+
+interface GhCommunityProfile {
+  health_percentage: number;
+  files: {
+    readme: unknown | null;
+    code_of_conduct: unknown | null;
+    contributing: unknown | null;
+    security: unknown | null;
+  } | null;
 }
 
 interface GhRepoRef {
@@ -62,6 +107,28 @@ export interface GitHubProviderConfig {
   token: string;
   baseUrl: string;
   userId: string;
+}
+
+function emptyToNull(value: string | null): string | null {
+  return value && value.trim() ? value : null;
+}
+
+function normalizeVisibility(
+  visibility: string | undefined,
+  isPrivate: boolean,
+): GitRepoVisibility {
+  if (
+    visibility === "public" ||
+    visibility === "private" ||
+    visibility === "internal"
+  ) {
+    return visibility;
+  }
+  return isPrivate ? "private" : "public";
+}
+
+function normalizeAccountType(type: string): GitAccountType {
+  return type === "Organization" ? "Organization" : "User";
 }
 
 export class GitHubProvider implements GitProvider {
@@ -177,16 +244,24 @@ export class GitHubProvider implements GitProvider {
           `/users/${encodeURIComponent(login)}`,
         );
         return {
-          login: u.login,
-          name: u.name,
-          avatarUrl: u.avatar_url,
-          bio: u.bio,
-          company: u.company,
-          location: u.location,
-          followers: u.followers,
-          following: u.following,
-          publicRepos: u.public_repos,
-          createdAt: u.created_at,
+          profile: {
+            login: u.login,
+            name: u.name,
+            avatarUrl: u.avatar_url,
+            bio: u.bio,
+            company: u.company,
+            location: u.location,
+            websiteUrl: emptyToNull(u.blog),
+            twitterUsername: u.twitter_username,
+            type: normalizeAccountType(u.type),
+            hireable: u.hireable,
+            followers: u.followers,
+            following: u.following,
+            publicRepos: u.public_repos,
+            publicGists: u.public_gists,
+            htmlUrl: u.html_url,
+            createdAt: u.created_at,
+          },
         } satisfies GitUser;
       },
       { indexKey: this.indexKey },
@@ -200,25 +275,44 @@ export class GitHubProvider implements GitProvider {
       REPO_TTL,
       async () => {
         const path = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
-        const r = await this.json<GhRepo>(path);
-        const [languages, latestRelease] = await Promise.all([
+        const [r, languages, latestRelease, community] = await Promise.all([
+          this.json<GhRepo>(path),
           this.getLanguages(owner, repo),
           this.getLatestRelease(owner, repo),
+          this.getCommunityProfile(owner, repo),
         ]);
         return {
-          owner: r.owner.login,
-          name: r.name,
-          fullName: r.full_name,
-          description: r.description,
-          stars: r.stargazers_count,
-          forks: r.forks_count,
-          watchers: r.subscribers_count ?? r.watchers_count,
-          openIssues: r.open_issues_count,
+          meta: {
+            owner: r.owner.login,
+            name: r.name,
+            fullName: r.full_name,
+            description: r.description,
+            homepageUrl: emptyToNull(r.homepage),
+            visibility: normalizeVisibility(r.visibility, r.private),
+            topics: r.topics ?? [],
+            isFork: r.fork,
+            archived: r.archived,
+            createdAt: r.created_at,
+            updatedAt: r.updated_at,
+            pushedAt: r.pushed_at,
+          },
+          stats: {
+            stars: r.stargazers_count,
+            forks: r.forks_count,
+            watchers: r.subscribers_count ?? r.watchers_count,
+            openIssues: r.open_issues_count,
+          },
           primaryLanguage: r.language,
           languages,
+          code: {
+            defaultBranch: r.default_branch,
+            sizeKb: r.size,
+          },
           latestRelease,
-          license: r.license?.spdx_id ?? r.license?.name ?? null,
-          pushedAt: r.pushed_at,
+          community: {
+            license: r.license?.spdx_id ?? r.license?.name ?? null,
+            ...community,
+          },
         } satisfies GitRepo;
       },
       { indexKey: this.indexKey },
@@ -253,7 +347,7 @@ export class GitHubProvider implements GitProvider {
     );
   }
 
-  private getLanguages(owner: string, repo: string) {
+  private getLanguages(owner: string, repo: string): Promise<GitLanguage[]> {
     return withCache(
       cacheKeys.git(
         "GITHUB",
@@ -269,16 +363,21 @@ export class GitHubProvider implements GitProvider {
         return Object.entries(raw)
           .map(([name, bytes]) => ({
             name,
+            bytes,
             percent: Math.round((bytes / total) * 1000) / 10,
+            color: languageColor(name),
           }))
-          .sort((a, b) => b.percent - a.percent)
+          .sort((a, b) => b.bytes - a.bytes)
           .slice(0, 6);
       },
       { indexKey: this.indexKey },
     );
   }
 
-  private getLatestRelease(owner: string, repo: string) {
+  private getLatestRelease(
+    owner: string,
+    repo: string,
+  ): Promise<GitRelease | null> {
     return withCache(
       cacheKeys.git(
         "GITHUB",
@@ -295,10 +394,45 @@ export class GitHubProvider implements GitProvider {
             tag: rel.tag_name,
             name: rel.name,
             publishedAt: rel.published_at,
+            prerelease: rel.prerelease,
+            htmlUrl: rel.html_url,
           };
         } catch (error) {
           if (error instanceof GitError && error.failure === "not_found")
             return null;
+          throw error;
+        }
+      },
+      { indexKey: this.indexKey },
+    );
+  }
+
+  private getCommunityProfile(
+    owner: string,
+    repo: string,
+  ): Promise<CommunityProfileData> {
+    return withCache(
+      cacheKeys.git(
+        "GITHUB",
+        this.host,
+        "community",
+        `${owner}/${repo}`.toLowerCase(),
+      ),
+      COMMUNITY_TTL,
+      async () => {
+        try {
+          const path = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/community/profile`;
+          const c = await this.json<GhCommunityProfile>(path);
+          return {
+            healthPercent: c.health_percentage ?? 0,
+            hasReadme: c.files?.readme != null,
+            hasCodeOfConduct: c.files?.code_of_conduct != null,
+            hasContributing: c.files?.contributing != null,
+            hasSecurityPolicy: c.files?.security != null,
+          };
+        } catch (error) {
+          if (error instanceof GitError && error.failure === "not_found")
+            return EMPTY_COMMUNITY;
           throw error;
         }
       },

@@ -24,8 +24,8 @@ export function WidgetDataReference({ type }: WidgetDataReferenceProps) {
   const prop = isUser ? "data.user" : "data.repo";
   const fields = isUser ? GIT_USER_FIELDS : GIT_REPO_FIELDS;
   const snippet = isUser
-    ? "function Widget({ accent, data }: { accent: string; data: { user: GitUser } }) {\n  const user = data.user;\n  return <div>{user.login}</div>;\n}"
-    : "function Widget({ accent, data }: { accent: string; data: { repo: GitRepo } }) {\n  const repo = data.repo;\n  return <div>{repo.fullName}</div>;\n}";
+    ? "function Widget({ accent, data }: { accent: string; data: { user: GitUser } }) {\n  const user = data.user.profile;\n  return <div>{user.login}</div>;\n}"
+    : "function Widget({ accent, data }: { accent: string; data: { repo: GitRepo } }) {\n  const repo = data.repo;\n  return <div>{repo.meta.fullName}</div>;\n}";
 
   return (
     <div className="space-y-3 rounded-lg border p-3">

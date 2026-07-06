@@ -53,15 +53,15 @@ function Widget({ accent, data }) {
 }`;
 
 const USER_WIDGET_EXAMPLE = `function Widget({ accent, data }: { accent: string; data: { user: GitUser } }) {
-  const user = data.user;
+  const { profile } = data.user;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 20 }}>
       <span style={{ fontSize: 24, fontWeight: 800, color: accent }}>
-        {user.name || user.login}
+        {profile.name || profile.login}
       </span>
-      <span>@{user.login}</span>
-      <span>{user.followers} followers</span>
+      <span>@{profile.login}</span>
+      <span>{profile.followers} followers</span>
     </div>
   );
 }`;
@@ -71,8 +71,8 @@ const REPO_WIDGET_EXAMPLE = `function Widget({ accent, data }: { accent: string;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 20 }}>
-      <span style={{ fontSize: 20, fontWeight: 800 }}>{repo.fullName}</span>
-      <span>{repo.stars} stars · {repo.forks} forks</span>
+      <span style={{ fontSize: 20, fontWeight: 800 }}>{repo.meta.fullName}</span>
+      <span>{repo.stats.stars} stars · {repo.stats.forks} forks</span>
       <span style={{ color: accent }}>{repo.primaryLanguage}</span>
     </div>
   );

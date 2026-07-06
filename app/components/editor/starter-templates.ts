@@ -91,11 +91,11 @@ export const WIDGET_STARTER_TEMPLATES: Record<
     source: `${WIDGET_RUNTIME_TYPES}
 
 function Widget({ accent, data }: { accent: string; data: { user: GitUser } }) {
-  const user = data.user;
+  const { profile } = data.user;
   const stats = [
-    ['followers', user.followers],
-    ['following', user.following],
-    ['repos', user.publicRepos],
+    ['followers', profile.followers],
+    ['following', profile.following],
+    ['repos', profile.publicRepos],
   ];
 
   return (
@@ -114,9 +114,9 @@ function Widget({ accent, data }: { accent: string; data: { user: GitUser } }) {
     >
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <span style={{ fontSize: 22, fontWeight: 800 }}>
-          {user.name || user.login}
+          {profile.name || profile.login}
         </span>
-        <span style={{ fontSize: 14, color: '#8b949e' }}>@{user.login}</span>
+        <span style={{ fontSize: 14, color: '#8b949e' }}>@{profile.login}</span>
       </div>
       <div style={{ display: 'flex', gap: 24 }}>
         {stats.map(([label, value]) => (
@@ -144,9 +144,9 @@ function Widget({ accent, data }: { accent: string; data: { user: GitUser } }) {
 function Widget({ accent, data }: { accent: string; data: { repo: GitRepo } }) {
   const repo = data.repo;
   const stats = [
-    ['stars', repo.stars],
-    ['forks', repo.forks],
-    ['issues', repo.openIssues],
+    ['stars', repo.stats.stars],
+    ['forks', repo.stats.forks],
+    ['issues', repo.stats.openIssues],
   ];
 
   return (
@@ -164,10 +164,10 @@ function Widget({ accent, data }: { accent: string; data: { repo: GitRepo } }) {
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <span style={{ fontSize: 18, fontWeight: 800 }}>{repo.fullName}</span>
-        {repo.description ? (
+        <span style={{ fontSize: 18, fontWeight: 800 }}>{repo.meta.fullName}</span>
+        {repo.meta.description ? (
           <span style={{ fontSize: 13, color: '#8b949e' }}>
-            {repo.description}
+            {repo.meta.description}
           </span>
         ) : null}
       </div>
