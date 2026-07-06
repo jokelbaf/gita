@@ -1,0 +1,15 @@
+.git
+.github
+
+node_modules
+.react-router
+build
+
+.env
+.env.*
+
+.agents
+.claude
+README.md
+Dockerfile
+docker-compose.yml

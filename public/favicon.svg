@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="gita">
+  <style>
+    .bg { fill: #18181b; }
+    .fg { fill: #fafafa; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #fafafa; }
+      .fg { fill: #18181b; }
+    }
+  </style>
+  <rect width="32" height="32" rx="8" class="bg" />
+  <rect x="6.5" y="6.5" width="12" height="12" rx="3" class="fg" />
+  <circle cx="21.5" cy="21.5" r="4" class="fg" />
+</svg>

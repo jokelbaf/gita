@@ -1,0 +1,7 @@
+build
+.react-router
+app/generated
+prisma/migrations
+pnpm-lock.yaml
+node_modules
+*.md

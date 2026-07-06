@@ -1,0 +1,73 @@
+services:
+  db:
+    image: postgres:18
+    container_name: gita-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  cache:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    container_name: gita-cache
+    ulimits:
+      memlock: -1
+    volumes:
+      - dragonfly_data:/data
+
+  migrate:
+    build:
+      context: .
+      dockerfile: db/Dockerfile
+    container_name: gita-migrate
+    environment:
+      DATABASE_URL: "postgresql://${PG_USER}:${PG_PASSWORD}@db:5432/${PG_DB}?schema=public"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gita-web
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: "postgresql://${PG_USER}:${PG_PASSWORD}@db:5432/${PG_DB}?schema=public"
+      REDIS_URL: "redis://cache:6379"
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  postgres_data:
+  dragonfly_data:

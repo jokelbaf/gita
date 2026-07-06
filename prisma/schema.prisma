@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+
+  githubId      String?  @unique
+  username      String?  @unique
+  avatarUrl     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions      Session[]
+  accounts      Account[]
+  widgets       Widget[]
+  instances     WidgetInstance[]
+  likes         Like[]
+  gitCredential GitCredential?
+
+  @@index([username])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+enum WidgetType {
+  GENERIC
+  USER
+  REPO
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum TargetType {
+  USER
+  REPO
+}
+
+enum GitProvider {
+  GITHUB
+  GITLAB
+  GITEA
+  FORGEJO
+}
+
+model Widget {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String
+  description String
+  type        WidgetType
+  visibility  Visibility @default(PRIVATE)
+  source      String
+  argsSchema  Json       @default("[]")
+  likesCount  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  forkedFromId   String?
+  forkedFrom     Widget?  @relation("WidgetForks", fields: [forkedFromId], references: [id], onDelete: SetNull)
+  forkedFromName String?
+  forks          Widget[] @relation("WidgetForks")
+
+  instances WidgetInstance[]
+  likes     Like[]
+
+  @@index([visibility, type, likesCount])
+  @@index([visibility, createdAt])
+  @@index([authorId])
+  @@index([forkedFromId])
+}
+
+model WidgetInstance {
+  id         String     @id @default(cuid())
+  widgetId   String
+  widget     Widget     @relation(fields: [widgetId], references: [id], onDelete: Cascade)
+  ownerId    String
+  owner      User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  targetType TargetType
+  targetLogin String
+  targetRepo  String?
+  config     Json       @default("{}")
+  createdAt  DateTime   @default(now())
+
+  @@index([ownerId])
+  @@index([widgetId])
+}
+
+model Like {
+  userId    String
+  widgetId  String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  widget Widget @relation(fields: [widgetId], references: [id], onDelete: Cascade)
+
+  @@id([userId, widgetId])
+  @@index([widgetId])
+}
+
+model GitCredential {
+  id             String      @id @default(cuid())
+  userId         String      @unique
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider       GitProvider @default(GITHUB)
+  baseUrl        String      @default("https://github.com")
+  encryptedToken String
+  last4          String
+  scopes         String[]    @default([])
+  accountLogin   String
+  expiresAt      DateTime?
+  validatedAt    DateTime    @default(now())
+  invalidatedAt  DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}

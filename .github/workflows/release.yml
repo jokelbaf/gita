@@ -1,0 +1,24 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: jokelbaf/pnpm-release@master
+        with:
+          package_path: package.json
