@@ -8,6 +8,12 @@ import {
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { CopyButton } from "~/components/copy-button";
+import { highlightCode } from "~/services/highlight.server";
+import {
+  GIT_REPO_FIELDS,
+  GIT_USER_FIELDS,
+  WIDGET_RUNTIME_TYPES,
+} from "~/services/widget-runtime";
 import type { Route } from "./+types/docs";
 
 export function meta(_: Route.MetaArgs) {
@@ -24,11 +30,88 @@ export function meta(_: Route.MetaArgs) {
 const SECTIONS = [
   { id: "embed", label: "Embedding", icon: ImageIcon },
   { id: "args", label: "Template args", icon: SlidersHorizontalIcon },
+  { id: "data", label: "Widget data", icon: CodeIcon },
   { id: "authoring", label: "Authoring", icon: CodeIcon },
   { id: "caching", label: "Caching", icon: ClockIcon },
 ] as const;
 
-export default function Docs() {
+const GENERIC_WIDGET_MARKDOWN = `![Pill Badge](https://gita.jokelbaf.dev/api/widget/public/pill-badge?label=build&value=passing)`;
+
+const GENERIC_ARGS_MARKDOWN = `![Stat](https://gita.jokelbaf.dev/api/widget/public/stat-counter?label=Stars&value=1280&color=%23f59e0b)`;
+
+const RUNTIME_PROPS_EXAMPLE = `// Generic
+function Widget({ label, color }) {}
+
+// User
+function Widget({ accent, data }) {
+  const user = data.user;
+}
+
+// Repo
+function Widget({ accent, data }) {
+  const repo = data.repo;
+}`;
+
+const USER_WIDGET_EXAMPLE = `function Widget({ accent, data }: { accent: string; data: { user: GitUser } }) {
+  const user = data.user;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 20 }}>
+      <span style={{ fontSize: 24, fontWeight: 800, color: accent }}>
+        {user.name || user.login}
+      </span>
+      <span>@{user.login}</span>
+      <span>{user.followers} followers</span>
+    </div>
+  );
+}`;
+
+const REPO_WIDGET_EXAMPLE = `function Widget({ accent, data }: { accent: string; data: { repo: GitRepo } }) {
+  const repo = data.repo;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 20 }}>
+      <span style={{ fontSize: 20, fontWeight: 800 }}>{repo.fullName}</span>
+      <span>{repo.stars} stars · {repo.forks} forks</span>
+      <span style={{ color: accent }}>{repo.primaryLanguage}</span>
+    </div>
+  );
+}`;
+
+const MINIMAL_WIDGET_EXAMPLE = `function Widget({ label, color }) {
+  return (
+    <div style={{ display: 'flex', padding: 16, color }}>
+      {label}
+    </div>
+  );
+}`;
+
+const SNIPPETS = {
+  genericWidget: { code: GENERIC_WIDGET_MARKDOWN, lang: "markdown" },
+  genericArgs: { code: GENERIC_ARGS_MARKDOWN, lang: "markdown" },
+  runtimeProps: { code: RUNTIME_PROPS_EXAMPLE, lang: "tsx" },
+  runtimeTypes: { code: WIDGET_RUNTIME_TYPES, lang: "tsx" },
+  userWidget: { code: USER_WIDGET_EXAMPLE, lang: "tsx" },
+  repoWidget: { code: REPO_WIDGET_EXAMPLE, lang: "tsx" },
+  minimalWidget: { code: MINIMAL_WIDGET_EXAMPLE, lang: "tsx" },
+} as const;
+
+type SnippetKey = keyof typeof SNIPPETS;
+type HighlightedSnippets = Record<SnippetKey, string>;
+
+export async function loader() {
+  const entries = await Promise.all(
+    Object.entries(SNIPPETS).map(async ([key, snippet]) => [
+      key,
+      await highlightCode(snippet.code, snippet.lang),
+    ]),
+  );
+  return { snippets: Object.fromEntries(entries) as HighlightedSnippets };
+}
+
+export default function Docs({ loaderData }: Route.ComponentProps) {
+  const { snippets } = loaderData;
+
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6">
       <header className="flex items-center gap-3">
@@ -63,9 +146,11 @@ export default function Docs() {
             README, paste a Markdown image pointing at that URL. Open any widget
             and click <strong>Use</strong> to get a ready-to-copy snippet.
           </p>
-          <Snippet label="Generic widget">
-            {`![Pill Badge](https://gita.jokelbaf.dev/api/widget/public/pill-badge?label=build&value=passing)`}
-          </Snippet>
+          <Snippet
+            label="Generic widget"
+            code={GENERIC_WIDGET_MARKDOWN}
+            html={snippets.genericWidget}
+          />
           <p>
             Because the output is a plain image, it works anywhere Markdown
             images do - profile READMEs, repo READMEs, issues, and the web.
@@ -99,13 +184,54 @@ export default function Docs() {
               string.
             </li>
           </ul>
-          <Snippet label="Overriding args on a generic widget">
-            {`![Stat](https://gita.jokelbaf.dev/api/widget/public/stat-counter?label=Stars&value=1280&color=%23f59e0b)`}
-          </Snippet>
+          <Snippet
+            label="Overriding args on a generic widget"
+            code={GENERIC_ARGS_MARKDOWN}
+            html={snippets.genericArgs}
+          />
           <p className="text-sm text-muted-foreground">
             The full argument reference for any widget is on its detail page,
             under “Arguments”.
           </p>
+        </Section>
+
+        <Section id="data" title="Widget data">
+          <p>
+            Your <Code>Widget</Code> function receives one props object. For a
+            generic widget, that object contains only the template args you
+            define. User and repo widgets receive those same args plus a
+            reserved <Code>data</Code> prop.
+          </p>
+          <Snippet
+            label="Runtime props"
+            code={RUNTIME_PROPS_EXAMPLE}
+            html={snippets.runtimeProps}
+          />
+          <p>
+            The editor preview uses sample data, so selecting User or Repo in
+            the Details tab only changes output once your source reads{" "}
+            <Code>data.user</Code> or <Code>data.repo</Code>. Real embeds fill
+            the same shape from the instance owner’s configured git token.
+          </p>
+          <Snippet
+            label="Copyable local types"
+            code={WIDGET_RUNTIME_TYPES}
+            html={snippets.runtimeTypes}
+          />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <FieldTable title="data.user" fields={GIT_USER_FIELDS} />
+            <FieldTable title="data.repo" fields={GIT_REPO_FIELDS} />
+          </div>
+          <Snippet
+            label="User widget example"
+            code={USER_WIDGET_EXAMPLE}
+            html={snippets.userWidget}
+          />
+          <Snippet
+            label="Repo widget example"
+            code={REPO_WIDGET_EXAMPLE}
+            html={snippets.repoWidget}
+          />
         </Section>
 
         <Section id="authoring" title="Authoring a widget">
@@ -123,15 +249,11 @@ export default function Docs() {
             </a>
             , so use flexbox and explicit sizes.
           </p>
-          <Snippet label="A minimal widget">
-            {`function Widget({ label, color }) {
-  return (
-    <div style={{ display: 'flex', padding: 16, color }}>
-      {label}
-    </div>
-  );
-}`}
-          </Snippet>
+          <Snippet
+            label="A minimal widget"
+            code={MINIMAL_WIDGET_EXAMPLE}
+            html={snippets.minimalWidget}
+          />
           <p>
             Your component receives its resolved args as props. User and repo
             widgets also receive a <Code>data</Code> prop with normalized git
@@ -223,16 +345,61 @@ function Section({
   );
 }
 
-function Snippet({ label, children }: { label: string; children: string }) {
+function FieldTable({
+  title,
+  fields,
+}: {
+  title: string;
+  fields: readonly (readonly [string, string, string])[];
+}) {
   return (
     <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+      <div className="border-b bg-muted/40 px-4 py-2 text-sm font-medium">
+        {title}
+      </div>
+      <table className="w-full text-sm">
+        <thead className="text-left text-muted-foreground">
+          <tr>
+            <th className="px-4 py-2 font-medium">Field</th>
+            <th className="px-4 py-2 font-medium">Type</th>
+            <th className="px-4 py-2 font-medium">Meaning</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {fields.map(([name, type, description]) => (
+            <tr key={name}>
+              <td className="px-4 py-2 font-mono text-xs">{name}</td>
+              <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
+                {type}
+              </td>
+              <td className="px-4 py-2 text-muted-foreground">{description}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Snippet({
+  label,
+  code,
+  html,
+}: {
+  label: string;
+  code: string;
+  html: string;
+}) {
+  return (
+    <div className="source-view overflow-hidden rounded-xl ring-1 ring-foreground/10">
       <div className="flex items-center justify-between border-b bg-muted/40 px-4 py-2">
         <span className="text-xs text-muted-foreground">{label}</span>
-        <CopyButton value={children} label="Copy" />
+        <CopyButton value={code} label="Copy" />
       </div>
-      <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed">
-        {children}
-      </pre>
+      <div
+        className="overflow-x-auto p-4"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </div>
   );
 }

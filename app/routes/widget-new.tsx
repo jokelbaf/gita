@@ -3,6 +3,7 @@ import {
   WidgetEditor,
   type WidgetEditorInitial,
 } from "~/components/editor/widget-editor";
+import { cloneTemplate } from "~/components/editor/starter-templates";
 import { userContext } from "~/services/context";
 import { requireUser } from "~/services/session.server";
 import {
@@ -15,68 +16,15 @@ export function meta(_: Route.MetaArgs) {
   return [{ title: "New widget - gita" }];
 }
 
+const GENERIC_TEMPLATE = cloneTemplate("GENERIC");
+
 const STARTER: WidgetEditorInitial = {
   name: "",
   description: "",
-  type: "GENERIC",
+  type: GENERIC_TEMPLATE.type,
   visibility: "PRIVATE",
-  source: `function Widget({ title, subtitle, background, accent }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        padding: 24,
-        width: '100%',
-        background,
-        borderRadius: 14,
-        fontFamily: 'sans-serif',
-      }}
-    >
-      <span style={{ fontSize: 26, fontWeight: 800, color: accent }}>
-        {title}
-      </span>
-      <span style={{ fontSize: 15, color: '#94a3b8' }}>{subtitle}</span>
-    </div>
-  );
-}`,
-  argsSchema: [
-    {
-      name: "title",
-      label: "Title",
-      type: "string",
-      default: "Hello, README",
-      required: true,
-      description: "The main heading.",
-      maxLength: 60,
-    },
-    {
-      name: "subtitle",
-      label: "Subtitle",
-      type: "string",
-      default: "Built with gita",
-      required: false,
-      description: "Secondary line under the title.",
-      maxLength: 80,
-    },
-    {
-      name: "background",
-      label: "Background",
-      type: "color",
-      default: "#0f172a",
-      required: false,
-      description: "Card background color.",
-    },
-    {
-      name: "accent",
-      label: "Accent",
-      type: "color",
-      default: "#38bdf8",
-      required: false,
-      description: "Title color.",
-    },
-  ],
+  source: GENERIC_TEMPLATE.source,
+  argsSchema: GENERIC_TEMPLATE.argsSchema,
 };
 
 export async function loader({ request, context }: Route.LoaderArgs) {

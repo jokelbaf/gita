@@ -1,4 +1,4 @@
-import { Loader2Icon, SaveIcon } from "lucide-react";
+import { AlertTriangleIcon, Loader2Icon, SaveIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Link,
@@ -27,8 +27,10 @@ import { ArgValuesForm } from "./arg-values-form";
 import { CodeEditor } from "./code-editor";
 import { MetadataFields, type WidgetMeta } from "./metadata-fields";
 import { PreviewPane } from "./preview-pane";
+import { cloneTemplate } from "./starter-templates";
 import { useUnsavedChanges } from "./use-unsaved-changes";
 import { useWidgetPreview } from "./use-widget-preview";
+import { WidgetDataReference } from "./widget-data-reference";
 
 export interface WidgetEditorInitial extends WidgetMeta {
   source: string;
@@ -61,12 +63,26 @@ export function WidgetEditor({ mode, initial, slug }: WidgetEditorProps) {
     visibility: initial.visibility,
   });
   const [overrides, setOverrides] = useState<Record<string, ArgValue>>({});
+  const [activeTab, setActiveTab] = useState("configure");
 
   const saving = navigation.state !== "idle";
   const bypass = useRef(false);
 
   useEffect(() => {
     if (actionData?.fieldErrors) bypass.current = false;
+  }, [actionData]);
+
+  useEffect(() => {
+    const errors = actionData?.fieldErrors;
+    if (!errors) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setActiveTab(errors.argsSchema ? "schema" : "details");
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [actionData]);
 
   const initialSnapshot = useMemo(
@@ -113,6 +129,20 @@ export function WidgetEditor({ mode, initial, slug }: WidgetEditorProps) {
     submit(fd, { method: "post" });
   }
 
+  function applyStarterTemplate() {
+    const template = cloneTemplate(meta.type);
+    setSource(template.source);
+    setArgsSchema(template.argsSchema);
+    setOverrides({});
+    setMeta((prev) => ({
+      ...prev,
+      name: prev.name.trim() ? prev.name : template.defaultName,
+      description: prev.description.trim()
+        ? prev.description
+        : template.defaultDescription,
+    }));
+  }
+
   const cancelHref = mode === "edit" && slug ? `/widgets/${slug}` : "/widgets";
 
   return (
@@ -144,6 +174,7 @@ export function WidgetEditor({ mode, initial, slug }: WidgetEditorProps) {
           {actionData.formError}
         </p>
       ) : null}
+      <EditorErrorSummary errors={actionData?.fieldErrors} />
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <div className="flex h-[68vh] min-h-96 flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10">
@@ -166,7 +197,8 @@ export function WidgetEditor({ mode, initial, slug }: WidgetEditorProps) {
           </div>
 
           <Tabs
-            defaultValue="configure"
+            value={activeTab}
+            onValueChange={setActiveTab}
             className="flex min-h-0 flex-1 flex-col"
           >
             <TabsList className="w-full">
@@ -188,13 +220,35 @@ export function WidgetEditor({ mode, initial, slug }: WidgetEditorProps) {
                 <ArgsBuilder schema={argsSchema} onChange={setArgsSchema} />
               </TabsContent>
               <TabsContent value="details">
-                <MetadataFields
-                  meta={meta}
-                  onChange={(patch) =>
-                    setMeta((prev) => ({ ...prev, ...patch }))
-                  }
-                  errors={actionData?.fieldErrors}
-                />
+                <div className="space-y-4">
+                  <MetadataFields
+                    meta={meta}
+                    onChange={(patch) =>
+                      setMeta((prev) => ({ ...prev, ...patch }))
+                    }
+                    errors={actionData?.fieldErrors}
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 p-3">
+                    <div>
+                      <p className="text-sm font-medium">
+                        {meta.type.toLowerCase()} starter
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Replace source and arguments with a working template for
+                        this type.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={applyStarterTemplate}
+                    >
+                      Use starter
+                    </Button>
+                  </div>
+                  <WidgetDataReference type={meta.type} />
+                </div>
               </TabsContent>
             </div>
           </Tabs>
@@ -202,6 +256,72 @@ export function WidgetEditor({ mode, initial, slug }: WidgetEditorProps) {
       </div>
 
       <UnsavedDialog blocker={blocker} />
+    </div>
+  );
+}
+
+function EditorErrorSummary({ errors }: { errors?: FieldErrors }) {
+  const messages = useMemo(
+    () =>
+      Object.values(errors ?? {}).filter((message): message is string =>
+        Boolean(message),
+      ),
+    [errors],
+  );
+  const [shownMessages, setShownMessages] = useState<string[]>([]);
+  const [shouldRender, setShouldRender] = useState(false);
+  const [open, setOpen] = useState(false);
+  const visible = messages.length > 0;
+
+  useEffect(() => {
+    let frame = 0;
+    let startTimer = 0;
+    let endTimer = 0;
+
+    if (visible) {
+      startTimer = window.setTimeout(() => {
+        setShownMessages(messages);
+        setShouldRender(true);
+        frame = window.requestAnimationFrame(() => setOpen(true));
+      }, 0);
+    } else {
+      startTimer = window.setTimeout(() => {
+        setOpen(false);
+        endTimer = window.setTimeout(() => setShouldRender(false), 200);
+      }, 0);
+    }
+
+    return () => {
+      if (startTimer) window.clearTimeout(startTimer);
+      if (endTimer) window.clearTimeout(endTimer);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [messages, visible]);
+
+  if (!shouldRender) return null;
+
+  return (
+    <div
+      className={[
+        "grid transition-[grid-template-rows,opacity,transform,margin-top] duration-200 ease-out",
+        open
+          ? "mt-4 translate-y-0 grid-rows-[1fr] opacity-100"
+          : "mt-0 -translate-y-1 grid-rows-[0fr] opacity-0",
+      ].join(" ")}
+    >
+      <div className="overflow-hidden">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <div className="flex items-center gap-2 font-medium">
+            <AlertTriangleIcon className="size-4 shrink-0" />
+            <span>Before saving, fix the highlighted fields.</span>
+          </div>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
+            {shownMessages.map((message) => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }
