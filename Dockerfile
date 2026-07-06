@@ -46,6 +46,6 @@ COPY --from=build /app/app/generated ./app/generated
 COPY --from=build /app/app/assets/fonts ./app/assets/fonts
 COPY package.json ./
 
-EXPOSE 3000
+EXPOSE 1791
 
 CMD ["node", "node_modules/@react-router/serve/bin.cjs", "./build/server/index.js"]

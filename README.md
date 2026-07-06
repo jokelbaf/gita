@@ -95,7 +95,7 @@ then starts the web server.
    On first start the `migrate` service runs `prisma migrate deploy` to initialise
    the schema, then exits; the `web` service starts only after migrations complete.
 
-3. The app is served at `http://localhost:3000` (change the host mapping in
+3. The app is served at `http://localhost:1791` (change the host mapping in
    `docker-compose.yml` if needed).
 
 To apply new migrations later, re-run `docker compose up -d --build` — the `migrate`
