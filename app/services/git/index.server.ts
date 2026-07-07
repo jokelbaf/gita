@@ -22,11 +22,6 @@ export type {
 } from "./types";
 export { GitError } from "./errors";
 
-// Orchestration layer over the provider adapters (SPEC §9). Everything that needs
-// git data goes through here: it resolves the *instance owner's* credential,
-// decrypts the token, builds the right adapter, and - crucially - turns a revoked
-// token into a credential-invalidation so renders degrade gracefully.
-
 const SUPPORTED: GitProviderId[] = ["GITHUB"];
 
 export function isProviderSupported(id: GitProviderId): boolean {
@@ -215,10 +210,6 @@ export async function listUserRepos(userId: string): Promise<ListReposResult> {
     };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Instance data resolution (used by the render endpoints)
-// ---------------------------------------------------------------------------
 
 export type InstanceDataResult =
   | { status: "ok"; data: Record<string, unknown> }

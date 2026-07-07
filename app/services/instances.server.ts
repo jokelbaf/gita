@@ -5,11 +5,6 @@ import { cacheDel, cacheKeys } from "./cache.server";
 import { prisma } from "./db.server";
 import { ForbiddenError, NotFoundError, ValidationError } from "./errors";
 
-// Widget instances (SPEC §2, §5.5, §6): a configured, owned usage of a USER/REPO
-// widget, bound to a git target. The Use flow creates them; the dashboard lists
-// and revokes them. Instance ids are unguessable (cuid) and every mutation checks
-// ownership - no IDOR (SPEC §12).
-
 export interface CreateInstanceInput {
   slug: string;
   targetLogin: string;

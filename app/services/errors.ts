@@ -1,11 +1,5 @@
 import { data } from "react-router";
 
-// Typed domain errors (SPEC §13). Services throw these to signal intent; route
-// loaders/actions convert them into route error Responses with `toErrorResponse`
-// so status + payload survive serialization to the error boundary. React Router
-// strips custom fields (and, in production, messages) from thrown Error
-// instances, so anything the UI must see has to travel as a Response.
-
 export type ErrorKind =
   | "NotFound"
   | "Unauthorized"

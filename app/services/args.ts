@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-// Widget template args (SPEC §2). This module is isomorphic: the render endpoints
-// validate incoming params against a widget's schema, and the editor/Use modal
-// (later sessions) reuse the very same builders so the form, preview, and server
-// agree on what a widget accepts.
-
 export const ARG_TYPES = [
   "string",
   "number",

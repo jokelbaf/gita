@@ -3,12 +3,6 @@ import { parseArgsSchema, type WidgetArg } from "./args";
 import { prisma } from "./db.server";
 import type { SortKey, TypeFilter, WidgetCard } from "~/lib/widget";
 
-// Discovery queries for the library, detail, profile, and landing pages (SPEC
-// §5.2/§5.3/§5.6, §11). Ranking (SPEC §11): popular = likesCount, newest =
-// createdAt desc, trending = 14-day time-decayed likes computed lazily per query.
-// Pagination is cursor-based ("Load more") - keyset for popular/newest via Prisma
-// cursors, and a keyset raw query for trending's computed score.
-
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 48;
 const TRENDING_WINDOW_SECONDS = 14 * 24 * 60 * 60; // 14 days
@@ -182,10 +176,6 @@ function encodeTrendingCursor(
   );
 }
 
-// ---------------------------------------------------------------------------
-// Listing
-// ---------------------------------------------------------------------------
-
 export async function listWidgets(
   params: ListWidgetsParams,
 ): Promise<ListWidgetsResult> {
@@ -219,9 +209,7 @@ async function listTrending(
   viewerId: string | null,
 ): Promise<ListWidgetsResult> {
   const cursor = decodeTrendingCursor(params.cursor);
-  // Pin the decay reference time for the whole pagination sequence. Using now()
-  // per request would drift every score as wall-clock advances between pages,
-  // making boundary widgets reappear; the reference travels in the cursor.
+
   const refIso = new Date(cursor?.refMs ?? Date.now()).toISOString();
   const cursorSql = cursor
     ? Prisma.sql`AND (s.score < ${cursor.score} OR (s.score = ${cursor.score} AND s.id < ${cursor.id}))`
@@ -284,10 +272,6 @@ async function hydrateByIds(
     .filter((row): row is CardRow => row !== undefined)
     .map((row) => toCard(row, viewerId));
 }
-
-// ---------------------------------------------------------------------------
-// Widget detail (SPEC §5.3)
-// ---------------------------------------------------------------------------
 
 export interface WidgetDetail extends WidgetCard {
   source: string;

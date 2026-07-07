@@ -23,8 +23,6 @@ export interface GitUserProfile {
   createdAt: string | null;
 }
 
-// Nested so future collected sections (stats, activity, ...) can be added
-// alongside `profile` without breaking existing user widgets.
 export interface GitUser {
   profile: GitUserProfile;
 }

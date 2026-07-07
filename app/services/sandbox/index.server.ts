@@ -15,9 +15,6 @@ export interface WidgetNode {
   props: Record<string, unknown>;
 }
 
-// Trusted prelude, injected before any widget code. Defines the JSX factory the
-// transformed source targets (React.createElement) so components resolve to plain,
-// JSON-serializable `{ type, props }` trees entirely inside the isolate
 const PRELUDE = `
 (function () {
   var MAX_NODES = 5000;
