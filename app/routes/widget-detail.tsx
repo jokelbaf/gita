@@ -131,7 +131,7 @@ export default function WidgetDetail({ loaderData }: Route.ComponentProps) {
       </header>
 
       <div className="mt-10 grid gap-8 lg:grid-cols-3">
-        <div className="space-y-8 lg:col-span-2">
+        <div className="min-w-0 space-y-8 lg:col-span-2">
           <section className="space-y-3">
             <h2 className="text-sm font-semibold text-muted-foreground">
               Preview
@@ -159,7 +159,7 @@ export default function WidgetDetail({ loaderData }: Route.ComponentProps) {
           </section>
         </div>
 
-        <aside className="lg:col-span-1">
+        <aside className="min-w-0 lg:col-span-1">
           <div className="space-y-4 rounded-xl border p-5 text-sm">
             <div className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground">
