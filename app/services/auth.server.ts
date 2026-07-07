@@ -13,9 +13,24 @@ export const auth = betterAuth({
   },
   user: {
     additionalFields: {
-      username: { type: "string", required: false, input: false },
-      githubId: { type: "string", required: false, input: false },
-      avatarUrl: { type: "string", required: false, input: false },
+      username: { type: "string", required: false },
+      githubId: { type: "string", required: false },
+      avatarUrl: { type: "string", required: false },
+    },
+  },
+  databaseHooks: {
+    user: {
+      update: {
+        before: async (data) => {
+          if (
+            "username" in data ||
+            "githubId" in data ||
+            "avatarUrl" in data
+          ) {
+            return false;
+          }
+        },
+      },
     },
   },
   socialProviders: githubOAuthConfigured
