@@ -22,11 +22,7 @@ export const auth = betterAuth({
     user: {
       update: {
         before: async (data) => {
-          if (
-            "username" in data ||
-            "githubId" in data ||
-            "avatarUrl" in data
-          ) {
+          if ("username" in data || "githubId" in data || "avatarUrl" in data) {
             return false;
           }
         },

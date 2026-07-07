@@ -6,15 +6,6 @@ import { cacheDel, cacheKeys, invalidateByIndex } from "./cache.server";
 import { prisma } from "./db.server";
 import { ForbiddenError, NotFoundError } from "./errors";
 
-// Widget authoring + lifecycle (SPEC §4, §5.4). The editor routes and the detail
-// page call these; every mutation re-checks ownership against the DB (not just a
-// hidden button) and, where a widget's rendered output can change, purges its
-// render cache and its instances' cache keys (SPEC §8) so served images update.
-
-// ---------------------------------------------------------------------------
-// Input parsing / validation
-// ---------------------------------------------------------------------------
-
 export const WIDGET_TYPES = ["GENERIC", "USER", "REPO"] as const;
 export const VISIBILITIES = ["PUBLIC", "PRIVATE"] as const;
 
@@ -51,15 +42,24 @@ export type FieldErrors = Partial<Record<string, string>>;
 export type ParseResult =
   { ok: true; value: WidgetInput } | { ok: false; fieldErrors: FieldErrors };
 
-export function parseWidgetInput(form: FormData): ParseResult {
+export interface RawWidgetInput {
+  name: unknown;
+  description: unknown;
+  type: unknown;
+  visibility: unknown;
+  source: unknown;
+  argsSchema: unknown;
+}
+
+export function validateWidgetInput(raw: RawWidgetInput): ParseResult {
   const fieldErrors: FieldErrors = {};
 
   const meta = metadataSchema.safeParse({
-    name: form.get("name"),
-    description: form.get("description") ?? "",
-    type: form.get("type"),
-    visibility: form.get("visibility"),
-    source: form.get("source"),
+    name: raw.name,
+    description: raw.description ?? "",
+    type: raw.type,
+    visibility: raw.visibility,
+    source: raw.source,
   });
   if (!meta.success) {
     for (const issue of meta.error.issues) {
@@ -69,19 +69,12 @@ export function parseWidgetInput(form: FormData): ParseResult {
   }
 
   let argsSchema: WidgetArg[] = [];
-  const rawSchema = form.get("argsSchema");
-  try {
-    const parsed = argsSchemaSchema.safeParse(
-      JSON.parse(typeof rawSchema === "string" ? rawSchema : "[]"),
-    );
-    if (!parsed.success) {
-      fieldErrors.argsSchema ??=
-        "One or more arguments are invalid - check names and options.";
-    } else {
-      argsSchema = parsed.data as WidgetArg[];
-    }
-  } catch {
-    fieldErrors.argsSchema ??= "The arguments schema is malformed.";
+  const parsed = argsSchemaSchema.safeParse(raw.argsSchema ?? []);
+  if (!parsed.success) {
+    fieldErrors.argsSchema ??=
+      "One or more arguments are invalid - check names and options.";
+  } else {
+    argsSchema = parsed.data as WidgetArg[];
   }
 
   if (Object.keys(fieldErrors).length > 0 || !meta.success) {
@@ -99,6 +92,27 @@ export function parseWidgetInput(form: FormData): ParseResult {
       argsSchema,
     },
   };
+}
+
+export function parseWidgetInput(form: FormData): ParseResult {
+  const rawSchema = form.get("argsSchema");
+  let argsSchema: unknown;
+  try {
+    argsSchema = JSON.parse(typeof rawSchema === "string" ? rawSchema : "[]");
+  } catch {
+    return {
+      ok: false,
+      fieldErrors: { argsSchema: "The arguments schema is malformed." },
+    };
+  }
+  return validateWidgetInput({
+    name: form.get("name"),
+    description: form.get("description") ?? "",
+    type: form.get("type"),
+    visibility: form.get("visibility"),
+    source: form.get("source"),
+    argsSchema,
+  });
 }
 
 function slugify(name: string): string {

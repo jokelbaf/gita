@@ -87,13 +87,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function collapseSection(pathname: string): string {
+  if (pathname === "/docs" || pathname.startsWith("/docs/")) return "/docs";
+  return pathname;
+}
+
 export default function App() {
   return (
     <LoginPromptProvider>
       <div className="flex min-h-dvh flex-col">
         <SiteHeader />
         <main className="flex-1">
-          <PageTransition>
+          <PageTransition collapse={collapseSection}>
             <Outlet />
           </PageTransition>
         </main>

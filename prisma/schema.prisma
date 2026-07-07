@@ -26,6 +26,7 @@ model User {
   instances     WidgetInstance[]
   likes         Like[]
   gitCredential GitCredential?
+  apiKeys       ApiKey[]
 
   @@index([username])
 }
@@ -153,6 +154,19 @@ model Like {
 
   @@id([userId, widgetId])
   @@index([widgetId])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  hashedKey  String    @unique
+  last4      String
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model GitCredential {

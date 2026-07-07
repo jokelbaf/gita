@@ -1,4 +1,6 @@
+import { ApiKeysPanel } from "~/components/settings/api-keys-panel";
 import { SettingsPanel } from "~/components/settings/settings-panel";
+import { listApiKeys } from "~/services/api-keys.server";
 import { userContext } from "~/services/context";
 import {
   getCredentialSummary,
@@ -15,7 +17,11 @@ export function meta(_: Route.MetaArgs) {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = requireUser(context.get(userContext), request);
-  return { credential: await getCredentialSummary(user.id) };
+  const [credential, apiKeys] = await Promise.all([
+    getCredentialSummary(user.id),
+    listApiKeys(user.id),
+  ]);
+  return { credential, apiKeys };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -49,7 +55,7 @@ export default function Settings({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
-  const { credential } = loaderData;
+  const { credential, apiKeys } = loaderData;
   const warnings =
     actionData && actionData.ok && "warnings" in actionData
       ? (actionData.warnings ?? [])
@@ -66,7 +72,10 @@ export default function Settings({
         </p>
       </header>
 
-      <section className="mt-8">
+      <section className="mt-8 space-y-4">
+        <h2 className="text-sm font-semibold text-muted-foreground">
+          Git connection
+        </h2>
         {/* Remount on save (validatedAt changes) so the panel resets to the
             fresh summary; a failed save leaves it on the form with its error. */}
         <SettingsPanel
@@ -75,6 +84,13 @@ export default function Settings({
           error={actionData && !actionData.ok ? actionData.error : undefined}
           warnings={warnings}
         />
+      </section>
+
+      <section className="mt-10 space-y-4">
+        <h2 className="text-sm font-semibold text-muted-foreground">
+          Programmatic access
+        </h2>
+        <ApiKeysPanel keys={apiKeys} />
       </section>
     </div>
   );
