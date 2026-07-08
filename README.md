@@ -12,6 +12,8 @@ GitHub READMEs. Write widgets as React components, publish them to a browsable l
 and embed them anywhere with a single image URL - rendered to SVG on demand and
 aggressively cached.
 
+<br>
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://gita.jokelbaf.dev/api/widget/public/stat-strip?w=880&items=SVG%7CRender%20output%3B%20%3C1s%7CCold%20render%3B%2024h%7CEdge%20cache%3B%20100%25%7CType-safe&theme=dark" />
   <img alt="Highlights" src="https://gita.jokelbaf.dev/api/widget/public/stat-strip?w=880&items=SVG%7CRender%20output%3B%20%3C1s%7CCold%20render%3B%2024h%7CEdge%20cache%3B%20100%25%7CType-safe&theme=light" width="880" />
