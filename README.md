@@ -18,6 +18,7 @@ aggressively cached.
 </picture>
 
 <br>
+<br>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://gita.jokelbaf.dev/api/widget/public/section-header-2?w=880&label=Features&kicker=why%20gita&theme=dark" />
@@ -48,11 +49,14 @@ access token.
   <img alt="Features" src="https://gita.jokelbaf.dev/api/widget/public/section-header-2?w=880&label=Features&kicker=technologies&theme=light" width="880" />
 </picture>
 
+<br>
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://gita.jokelbaf.dev/api/widget/public/tech-chip-row?w=880&items=React%2019%2C%20React%20Router%208%2C%20Vite%208%2C%20TailwindCSS%204%2C%20shadcn%2Fui%2C%20Better%20Auth%2C%20Prisma%207%2C%20Postgres%2C%20Satori%2C%20isolated-vm&theme=dark" />
   <img alt="Tech stack" src="https://gita.jokelbaf.dev/api/widget/public/tech-chip-row?w=880&items=React%2019%2C%20React%20Router%208%2C%20Vite%208%2C%20TailwindCSS%204%2C%20shadcn%2Fui%2C%20Better%20Auth%2C%20Prisma%207%2C%20Postgres%2C%20Satori%2C%20isolated-vm&theme=light" width="880" />
 </picture>
 
+<br>
 <br>
 
 <picture>
