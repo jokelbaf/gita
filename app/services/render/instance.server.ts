@@ -15,7 +15,7 @@ import {
   tombstoneImage,
 } from "./index.server";
 
-const INSTANCE_TTL = 3_600;
+const INSTANCE_TTL = 60;
 const TRANSIENT_TTL = 120;
 
 export async function renderInstance(
@@ -43,6 +43,7 @@ export async function renderInstance(
     return svgResponse(await tombstoneImage(), {
       cacheControl: CacheControl.tombstone,
       gitaStatus: "tombstone",
+      request,
     });
   }
 
@@ -53,6 +54,7 @@ export async function renderInstance(
       cacheControl: CacheControl.instanceOk,
       gitaStatus: "ok",
       cacheHit: true,
+      request,
     });
   }
 
@@ -66,6 +68,7 @@ export async function renderInstance(
       return svgResponse(await reconnectImage(), {
         cacheControl: CacheControl.transient,
         gitaStatus: "reconnect",
+        request,
       });
     }
     if (result.status === "target_missing") {
@@ -73,7 +76,11 @@ export async function renderInstance(
         await errorImage(
           `Target not found: ${instance.targetLogin}${instance.targetRepo ? `/${instance.targetRepo}` : ""}`,
         ),
-        { cacheControl: CacheControl.transient, gitaStatus: "error" },
+        {
+          cacheControl: CacheControl.transient,
+          gitaStatus: "error",
+          request,
+        },
       );
     }
     data = result.data;
@@ -85,6 +92,7 @@ export async function renderInstance(
     return svgResponse(await errorImage(detail), {
       cacheControl: CacheControl.transient,
       gitaStatus: "error",
+      request,
     });
   }
 
@@ -111,11 +119,13 @@ export async function renderInstance(
         ? CacheControl.instanceOk
         : CacheControl.transient,
       gitaStatus: outcome.ok ? "ok" : "error",
+      request,
     });
   } catch {
     return svgResponse(await errorImage("The widget could not be rendered."), {
       cacheControl: CacheControl.transient,
       gitaStatus: "error",
+      request,
     });
   }
 }

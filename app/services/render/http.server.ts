@@ -2,13 +2,12 @@ import { createHash } from "node:crypto";
 import { rateLimit, cacheKeys } from "../cache.server";
 import { errorImage } from "./images.server";
 
-// Every rendered image returns HTTP 200 so it actually displays in a README (a
-// 4xx <img> shows as broken in most clients - the whole point of the error /
-// tombstone / reconnect images is to degrade *visibly*). The condition is exposed
-// via the `X-Gita-Status` header and controlled via cache lifetime instead.
+// Rendered images normally return HTTP 200 so they display in a README (a 4xx
+// <img> shows as broken). Conditional GETs may return 304; render conditions are
+// exposed via `X-Gita-Status` and controlled via cache lifetime instead.
 export const CacheControl = {
-  genericOk: "public, max-age=86400, s-maxage=86400", // deterministic from params
-  instanceOk: "public, max-age=3600, s-maxage=3600", // data-driven, refresh hourly
+  genericOk: "public, no-cache", // store, but validate so edits appear immediately
+  instanceOk: "public, max-age=60, must-revalidate", // dynamic provider data
   transient: "public, max-age=120, s-maxage=120", // errors / reconnect - self-heal
   tombstone: "public, max-age=300, s-maxage=300",
 } as const;
@@ -26,17 +25,36 @@ interface SvgResponseInit {
   cacheControl: string;
   gitaStatus: GitaStatus;
   cacheHit?: boolean;
+  request?: Request;
 }
 
 export function svgResponse(svg: string, init: SvgResponseInit): Response {
-  return new Response(svg, {
-    status: init.status ?? 200,
-    headers: {
-      "Content-Type": "image/svg+xml; charset=utf-8",
-      "Cache-Control": init.cacheControl,
-      "X-Gita-Status": init.gitaStatus,
-      "X-Cache": init.cacheHit ? "HIT" : "MISS",
-    },
+  const status = init.status ?? 200;
+  const etag = `"${createHash("sha256").update(svg).digest("base64url")}"`;
+  const headers = new Headers({
+    "Content-Type": "image/svg+xml; charset=utf-8",
+    "Cache-Control": init.cacheControl,
+    ETag: etag,
+    "X-Gita-Status": init.gitaStatus,
+    "X-Cache": init.cacheHit ? "HIT" : "MISS",
+  });
+
+  if (
+    status === 200 &&
+    init.request &&
+    matchesEtag(init.request.headers.get("if-none-match"), etag)
+  ) {
+    return new Response(null, { status: 304, headers });
+  }
+
+  return new Response(svg, { status, headers });
+}
+
+function matchesEtag(header: string | null, etag: string): boolean {
+  if (!header) return false;
+  return header.split(",").some((candidate) => {
+    const tag = candidate.trim();
+    return tag === "*" || tag.replace(/^W\//, "") === etag;
   });
 }
 

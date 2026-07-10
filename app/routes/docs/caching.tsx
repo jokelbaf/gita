@@ -9,13 +9,13 @@ interface Row {
 const ROWS: Row[] = [
   {
     what: "Generic widget",
-    ttl: "24 hours",
-    why: "Deterministic from its params.",
+    ttl: "Revalidated",
+    why: "Stored with an ETag, then validated so edits appear immediately.",
   },
   {
     what: "User / repo instance",
-    ttl: "1 hour",
-    why: "Data-driven - refreshes hourly.",
+    ttl: "1 minute",
+    why: "Short-lived render; provider data is cached separately.",
   },
   {
     what: "Error / reconnect",
@@ -41,7 +41,9 @@ export default function DocsCaching() {
         <p>
           READMEs stay fast while still refreshing. Editing a widget (from the
           editor or the API) purges its cache immediately, so changes go live on
-          the next request.
+          the next request. Successful renders include an ETag, allowing
+          browsers and proxies to validate unchanged images with a small 304
+          response.
         </p>
         <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
           <table className="w-full text-sm">

@@ -37,6 +37,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     return svgResponse(await tombstoneImage(), {
       cacheControl: CacheControl.tombstone,
       gitaStatus: "tombstone",
+      request,
     });
   }
 
@@ -46,6 +47,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   if (widget.type === "USER" || widget.type === "REPO") {
     return renderSample(
+      request,
       widget.id,
       widget.type,
       widget.source,
@@ -69,6 +71,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       return svgResponse(svg, {
         cacheControl: CacheControl.transient,
         gitaStatus: "invalid-params",
+        request,
       });
     }
 
@@ -82,6 +85,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         cacheControl: CacheControl.genericOk,
         gitaStatus: "ok",
         cacheHit: true,
+        request,
       });
     }
 
@@ -102,16 +106,19 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         ? CacheControl.genericOk
         : CacheControl.transient,
       gitaStatus: outcome.ok ? "ok" : "error",
+      request,
     });
   } catch {
     return svgResponse(await errorImage("The widget could not be rendered."), {
       cacheControl: CacheControl.transient,
       gitaStatus: "error",
+      request,
     });
   }
 }
 
 async function renderSample(
+  request: Request,
   widgetId: string,
   type: "USER" | "REPO",
   source: string,
@@ -133,6 +140,7 @@ async function renderSample(
         cacheControl: CacheControl.genericOk,
         gitaStatus: "ok",
         cacheHit: true,
+        request,
       });
     }
 
@@ -148,11 +156,13 @@ async function renderSample(
         ? CacheControl.genericOk
         : CacheControl.transient,
       gitaStatus: outcome.ok ? "ok" : "error",
+      request,
     });
   } catch {
     return svgResponse(await errorImage("The widget could not be previewed."), {
       cacheControl: CacheControl.transient,
       gitaStatus: "error",
+      request,
     });
   }
 }
